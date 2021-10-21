@@ -18,7 +18,7 @@ import (
 
 // GetRequest makes the get request and return the body
 func GetRequest(ctx context.Context, returnValuePointer interface{}, baseUrl string, requestPath string, requestParams url.Values) errors.EdgeX {
-	req, err := createRequest(ctx, http.MethodGet, baseUrl, requestPath, requestParams)
+	req, err := createRequest(ctx, http.MethodGet, baseUrl, requestPath, requestParams, nil)
 	if err != nil {
 		return errors.NewCommonEdgeXWrapper(err)
 	}
@@ -38,8 +38,8 @@ func GetRequest(ctx context.Context, returnValuePointer interface{}, baseUrl str
 }
 
 // GetRequestAndReturnBinaryRes makes the get request and return the binary response and content type(i.e., application/json, application/cbor, ... )
-func GetRequestAndReturnBinaryRes(ctx context.Context, baseUrl string, requestPath string, requestParams url.Values) (res []byte, contentType string, edgeXerr errors.EdgeX) {
-	req, edgeXerr := createRequest(ctx, http.MethodGet, baseUrl, requestPath, requestParams)
+func GetRequestAndReturnBinaryRes(ctx context.Context, baseUrl string, requestPath string, requestParams url.Values, data interface{}) (res []byte, contentType string, edgeXerr errors.EdgeX) {
+	req, edgeXerr := createRequest(ctx, http.MethodGet, baseUrl, requestPath, requestParams, data)
 	if edgeXerr != nil {
 		return nil, "", errors.NewCommonEdgeXWrapper(edgeXerr)
 	}
@@ -65,6 +65,27 @@ func GetRequestAndReturnBinaryRes(ctx context.Context, baseUrl string, requestPa
 		errors.NewCommonEdgeX(
 			errors.KindMapping(resp.StatusCode),
 			fmt.Sprintf("request failed, status code: %d, err: %s", resp.StatusCode, string(res)), nil)
+}
+
+// GetRequestWithRawData makes the get request with raw data
+func GetRequestWithRawData(ctx context.Context, returnValuePointer interface{}, baseUrl string, requestPath string, requestParams url.Values, data interface{}) errors.EdgeX {
+	req, err := createRequest(ctx, http.MethodGet, baseUrl, requestPath, requestParams, data)
+	if err != nil {
+		return errors.NewCommonEdgeXWrapper(err)
+	}
+
+	res, err := sendRequest(ctx, req)
+	if err != nil {
+		return errors.NewCommonEdgeXWrapper(err)
+	}
+	// Check the response content length to avoid json unmarshal error
+	if len(res) == 0 {
+		return nil
+	}
+	if err := json.Unmarshal(res, returnValuePointer); err != nil {
+		return errors.NewCommonEdgeX(errors.KindContractInvalid, "failed to parse the response body", err)
+	}
+	return nil
 }
 
 // PostRequest makes the post request with encoded data and return the body
@@ -202,7 +223,7 @@ func PutByFileRequest(
 
 // DeleteRequest makes the delete request and return the body
 func DeleteRequest(ctx context.Context, returnValuePointer interface{}, baseUrl string, requestPath string) errors.EdgeX {
-	req, err := createRequest(ctx, http.MethodDelete, baseUrl, requestPath, nil)
+	req, err := createRequest(ctx, http.MethodDelete, baseUrl, requestPath, nil, nil)
 	if err != nil {
 		return errors.NewCommonEdgeXWrapper(err)
 	}

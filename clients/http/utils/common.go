@@ -65,7 +65,7 @@ func makeRequest(req *http.Request) (*http.Response, errors.EdgeX) {
 	return resp, nil
 }
 
-func createRequest(ctx context.Context, httpMethod string, baseUrl string, requestPath string, requestParams url.Values) (*http.Request, errors.EdgeX) {
+func createRequest(ctx context.Context, httpMethod string, baseUrl string, requestPath string, requestParams url.Values, data interface{}) (*http.Request, errors.EdgeX) {
 	u, err := url.Parse(baseUrl)
 	if err != nil {
 		return nil, errors.NewCommonEdgeX(errors.KindServerError, "fail to parse baseUrl", err)
@@ -74,9 +74,27 @@ func createRequest(ctx context.Context, httpMethod string, baseUrl string, reque
 	if requestParams != nil {
 		u.RawQuery = requestParams.Encode()
 	}
-	req, err := http.NewRequest(httpMethod, u.String(), nil)
-	if err != nil {
-		return nil, errors.NewCommonEdgeX(errors.KindServerError, "failed to create a http request", err)
+
+	var req *http.Request
+	if data != nil {
+		jsonEncodedData, err := json.Marshal(data)
+		if err != nil {
+			return nil, errors.NewCommonEdgeX(errors.KindContractInvalid, "failed to encode input data to JSON", err)
+		}
+		req, err = http.NewRequest(httpMethod, u.String(), bytes.NewReader(jsonEncodedData))
+		if err != nil {
+			return nil, errors.NewCommonEdgeX(errors.KindServerError, "failed to create a http request", err)
+		}
+		content := FromContext(ctx, common.ContentType)
+		if content == "" {
+			content = common.ContentTypeJSON
+		}
+		req.Header.Set(common.ContentType, content)
+	} else {
+		req, err = http.NewRequest(httpMethod, u.String(), nil)
+		if err != nil {
+			return nil, errors.NewCommonEdgeX(errors.KindServerError, "failed to create a http request", err)
+		}
 	}
 	req.Header.Set(common.CorrelationHeader, correlatedId(ctx))
 	return req, nil
