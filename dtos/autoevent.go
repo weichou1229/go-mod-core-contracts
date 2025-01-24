@@ -1,5 +1,6 @@
 //
 // Copyright (C) 2020-2023 IOTech Ltd
+// Copyright (C) 2025 IOTech Ltd
 //
 // SPDX-License-Identifier: Apache-2.0
 
@@ -10,19 +11,35 @@ import (
 )
 
 type AutoEvent struct {
-	Interval          string  `json:"interval" yaml:"interval" validate:"required,edgex-dto-duration=1ms"` // min/max can be defined as params, ex. edgex-dto-duration=10ms0x2C24h
-	OnChange          bool    `json:"onChange" yaml:"onChange"`
-	OnChangeThreshold float64 `json:"onChangeThreshold" yaml:"onChangeThreshold" validate:"gte=0"`
-	SourceName        string  `json:"sourceName" yaml:"sourceName" validate:"required"`
+	Interval          string     `json:"interval" yaml:"interval" validate:"required,edgex-dto-duration=1ms"` // min/max can be defined as params, ex. edgex-dto-duration=10ms0x2C24h
+	OnChange          bool       `json:"onChange" yaml:"onChange"`
+	OnChangeThreshold float64    `json:"onChangeThreshold" yaml:"onChangeThreshold" validate:"gte=0"`
+	SourceName        string     `json:"sourceName" yaml:"sourceName" validate:"required"`
+	Retention         *Retention `json:"retention" yaml:"retention" validate:"omitempty,dive"`
+}
+
+type Retention struct {
+	MaxCap   int64  `json:"maxCap" yaml:"maxCap"`
+	MinCap   int64  `json:"minCap" yaml:"minCap"`
+	Duration string `json:"duration" yaml:"duration" validate:"edgex-dto-duration=0s"`
 }
 
 // ToAutoEventModel transforms the AutoEvent DTO to the AutoEvent model
 func ToAutoEventModel(a AutoEvent) models.AutoEvent {
+	var retention *models.Retention
+	if a.Retention != nil {
+		retention = &models.Retention{
+			MaxCap:   a.Retention.MaxCap,
+			MinCap:   a.Retention.MinCap,
+			Duration: a.Retention.Duration,
+		}
+	}
 	return models.AutoEvent{
 		Interval:          a.Interval,
 		OnChange:          a.OnChange,
 		OnChangeThreshold: a.OnChangeThreshold,
 		SourceName:        a.SourceName,
+		Retention:         retention,
 	}
 }
 
@@ -37,11 +54,20 @@ func ToAutoEventModels(autoEventDTOs []AutoEvent) []models.AutoEvent {
 
 // FromAutoEventModelToDTO transforms the AutoEvent model to the AutoEvent DTO
 func FromAutoEventModelToDTO(a models.AutoEvent) AutoEvent {
+	var retention *Retention
+	if a.Retention != nil {
+		retention = &Retention{
+			MaxCap:   a.Retention.MaxCap,
+			MinCap:   a.Retention.MinCap,
+			Duration: a.Retention.Duration,
+		}
+	}
 	return AutoEvent{
 		Interval:          a.Interval,
 		OnChange:          a.OnChange,
 		OnChangeThreshold: a.OnChangeThreshold,
 		SourceName:        a.SourceName,
+		Retention:         retention,
 	}
 }
 
