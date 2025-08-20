@@ -7,6 +7,7 @@ package dtos
 
 import (
 	"encoding/json"
+	"fmt"
 	"testing"
 
 	"github.com/stretchr/testify/require"
@@ -149,7 +150,7 @@ func TestNewSimpleReading(t *testing.T) {
 			assert.Equal(t, expectedDeviceName, actual.DeviceName)
 			assert.Equal(t, expectedResourceName, actual.ResourceName)
 			assert.Equal(t, tt.expectedValueType, actual.ValueType)
-			assert.Equal(t, tt.expectedValue, actual.Value)
+			assert.Equal(t, tt.expectedValue, actual.SimpleReading.Value)
 			assert.NotZero(t, actual.Origin)
 		})
 	}
@@ -242,7 +243,7 @@ func TestNullReading(t *testing.T) {
 			assert.Equal(t, expectedResourceName, actual.ResourceName)
 			assert.Equal(t, tt.expectedValueType, actual.ValueType)
 			assert.True(t, actual.isNull)
-			assert.Empty(t, actual.Value)
+			assert.Empty(t, actual.SimpleReading.Value)
 			assert.Empty(t, actual.ObjectValue)
 			assert.Empty(t, actual.BinaryValue)
 			assert.NotZero(t, actual.Origin)
@@ -764,6 +765,39 @@ func TestMarshalSimpleReading(t *testing.T) {
 			require.NoError(t, err)
 
 			assert.Equal(t, reading, res)
+		})
+	}
+}
+
+func TestMarshalNumericReading(t *testing.T) {
+	tests := []struct {
+		name      string
+		valueType string
+		value     any
+	}{
+		{"Simple Uint8", common.ValueTypeUint8, uint8(255)},
+		{"Simple Uint16", common.ValueTypeUint16, uint16(1234)},
+		{"Simple Uint32", common.ValueTypeUint32, uint32(12345)},
+		{"Simple uint64", common.ValueTypeUint64, uint64(123456)},
+		{"Simple int8", common.ValueTypeInt8, int8(123)},
+		{"Simple int16", common.ValueTypeInt16, int16(1234)},
+		{"Simple int32", common.ValueTypeInt32, int32(12345)},
+		{"Simple int64", common.ValueTypeInt64, int64(123456)},
+		{"Simple Float32", common.ValueTypeFloat32, float32(123.456)},
+		{"Simple Float64", common.ValueTypeFloat64, float64(123456789.0987654321)},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			reading := NewNumericReading(TestDeviceProfileName, TestDeviceName, TestDeviceResourceName, tt.valueType, tt.value)
+			data, err := json.Marshal(reading)
+			require.NoError(t, err)
+
+			var res BaseReading
+			err = json.Unmarshal(data, &res)
+			require.NoError(t, err)
+
+			// compare with string data type because reading DTO use string to wrap the received value
+			assert.Equal(t, fmt.Sprintf("%v", reading.NumericReading.Value), res.SimpleReading.Value)
 		})
 	}
 }

@@ -115,7 +115,8 @@ func TestEvent_ToXML(t *testing.T) {
 		"<Longitude>-95.377603</Longitude>",
 		"</Tags></Event>",
 	}
-	actual, _ := expectedDTO.ToXML()
+	actual, err := expectedDTO.ToXML()
+	require.NoError(t, err)
 	for _, item := range contains {
 		assert.Contains(t, actual, item, fmt.Sprintf("Missing item '%s'", item))
 	}
@@ -168,7 +169,7 @@ func TestEvent_AddSimpleReading(t *testing.T) {
 		assert.Equal(t, expectedDeviceName, actual.DeviceName)
 		assert.Equal(t, expectedReadingDetails[index].resourceName, actual.ResourceName)
 		assert.Equal(t, expectedReadingDetails[index].valueType, actual.ValueType)
-		assert.Equal(t, expectedReadingDetails[index].value, actual.Value)
+		assert.Equal(t, expectedReadingDetails[index].value, actual.SimpleReading.Value)
 		assert.NotZero(t, actual.Origin)
 	}
 }
@@ -282,7 +283,7 @@ func TestEvent_MarshalNullReading(t *testing.T) {
 				assert.Equal(t, testEvent.Readings[i].ResourceName, r.ResourceName)
 				assert.Equal(t, testEvent.Readings[i].ValueType, r.ValueType)
 				assert.True(t, r.isNull, "isNull should be true after marshaling")
-				assert.Empty(t, r.Value, "reading value should be empty after marshaling")
+				assert.Empty(t, r.SimpleReading.Value, "reading value should be empty after marshaling")
 				assert.Empty(t, r.ObjectValue, "reading objectValue should be empty after marshaling")
 				assert.Empty(t, r.BinaryValue, "reading binaryValue should be empty after marshaling")
 			}
